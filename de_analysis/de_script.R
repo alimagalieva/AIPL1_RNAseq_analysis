@@ -68,19 +68,19 @@ dds <- DESeqDataSetFromMatrix(countData = data, colData = meta, design = ~ sampl
 dds <- DESeq(dds)
 
 ##  **Optional step** - Output normalized counts to save as a file to access outside RStudio
-normalized_counts <- counts(dds, normalized=TRUE) 
-write.table(normalized_counts, file="data/normalized_counts.txt", sep="\t", quote=F, col.names=NA) 
+#normalized_counts <- counts(dds, normalized=TRUE) 
+#write.table(normalized_counts, file="data/normalized_counts.txt", sep="\t", quote=F, col.names=NA) 
 
 ## Total number of raw counts per sample
-colSums(counts(dds))
+#colSums(counts(dds))
 
 ## Total number of normalized counts per sample
-colSums(counts(dds, normalized=T))
+#colSums(counts(dds, normalized=T))
 
-## log2fold change calculation and MAplot:
-plotMA(dds, main = "dds")
-res <- results(dds)
-plotMA(res, alpha = 0.05, main = "res", ylim=c(-7,7))
+## log2fold change calculation and MAplot: - what for?
+#plotMA(dds, main = "dds")
+#res <- results(dds)
+#plotMA(res, alpha = 0.05, main = "res", ylim=c(-7,7))
 
 ####################################### QC #####################################
 
@@ -97,45 +97,85 @@ heat.colors <- brewer.pal(6, "Blues")
 pheatmap(rld_cor, color = heat.colors, fontsize = 10, fontsize_row = 10, height=20)
 
 
-#################################### Shrinkage #################################
+################################### Shrinkage ##################################
 
 contrast_wt <- c("sampletype", "AAV9_AIPL1wt", "control")
 contrast_opt <- c("sampletype", "AAV9_AIPL1opt", "control")
 contrast_wt_opt <- c("sampletype", "AAV9_AIPL1wt", "AAV9_AIPL1opt")
-res_unshrunken_wt <- results(dds, contrast = contrast_wt, alpha = 0.05, pAdjustMethod = 'bonferroni')
+contrast_gfp_ctrl <- c("sampletype", "AAV9_GFP", "control")
+
+
+################################################################################
+################################################################################
+################################################################################
+
+res_unshrunken_wt <- results(dds, contrast = contrast_wt,  alpha = 0.05, lfcThreshold = 0.58)
+res_shrunken_wt <- lfcShrink(dds, contrast = contrast_wt, res=res_unshrunken_wt, type='ashr')
+res_df_wt <- data.frame(res_shrunken_wt)
+sig_res_wt <- filter(res_df_wt, baseMean>5 & padj < 0.05 & abs(log2FoldChange) > 0.58)
+
+hist(sig_res_wt$padj) ## looks norm
+
+
+res_df_wt_up_TF <- res_df_wt %>% 
+  mutate(dif_expr = padj < 0.001 & log2FoldChange >= 1)
+
+de_up_wt <- res_df_wt_up_TF[which(res_df_wt_up_TF$dif_expr == 'TRUE'), ]
+
+df_genes <- df[, 1:4]
+row.names(df_genes) <- df_genes[,1]
+drop <- c('name') 
+df_genes = df_genes[,!(names(df_genes) %in% drop)]
+## Merge:
+de_up_wt <- merge(x = de_up_wt, y = df_genes, by = 0, all.x = TRUE)
+
+de_up_wt <- de_up_wt %>% arrange(desc(log2FoldChange))
+
+
+################################################################################
+################################################################################
+################################################################################
+
+## extracts a result table from a DESeq analysis
+res_unshrunken_wt <- results(dds, contrast = contrast_wt, alpha = 0.001, pAdjustMethod = 'bonferroni', lfcThreshold = 1)
 res_unshrunken_opt <- results(dds, contrast = contrast_opt, alpha = 0.05, pAdjustMethod = 'bonferroni')
 res_unshrunken_wt_opt <- results(dds, contrast = contrast_wt_opt, alpha = 0.05, pAdjustMethod = 'bonferroni')
+res_unshrunken_gfp_ctrl <- results(dds, contrast = contrast_gfp_ctrl, alpha = 0.05, pAdjustMethod = 'bonferroni')
+
+## remove low counts
 res_shrunken_wt <- lfcShrink(dds, contrast = contrast_wt, res=res_unshrunken_wt, type='normal')
 res_shrunken_opt <- lfcShrink(dds, contrast = contrast_opt, res=res_unshrunken_opt, type='normal')
 res_shrunken_wt_opt <- lfcShrink(dds, contrast = contrast_wt_opt, res=res_unshrunken_wt_opt, type='normal')
+res_shrunken_gfp_ctrl <- lfcShrink(dds, contrast = contrast_gfp_ctrl, res=res_unshrunken_gfp_ctrl, type='normal')
 
-#res_shrunken_wt %>% data.frame() %>% View()
-summary(res_shrunken_wt_opt)
-sum(res_shrunken_wt_opt$padj < 1.580078e-06, na.rm=TRUE)
+#rr <- res_shrunken_wt %>% data.frame()
+#rr <- filter(rr, padj<0.001)
+summary(res_shrunken_wt)
+sum(res_shrunken_wt$padj < 0.001, na.rm=TRUE)
 
-0.05/31644
-
-## How many genes are differentially expressed compared to control:
-padj.cutoff <- 0.05/31644
-lfc.cutoff <- 0.58
+## How many genes are differentially expressed:
+padj.cutoff <- 0.001
+lfc.cutoff <- 1
 # Turn the results object into a data frame
 res_df_wt <- data.frame(res_shrunken_wt)
 res_df_opt <- data.frame(res_shrunken_opt)
 res_df_wt_opt <- data.frame(res_shrunken_wt_opt)
+res_df_gfp_ctrl <- data.frame(res_shrunken_gfp_ctrl)
 
 # Subset the significant results
 sig_res_wt <- filter(res_df_wt, padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
 sig_res_opt <- filter(res_df_opt, padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
 sig_res_wt_opt <- filter(res_df_wt_opt, padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
+sig_res_gfp_ctrl <- filter(res_df_gfp_ctrl, padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
 
 #################### Dot-plot expression of a single gene ######################
 # ENSG00000129221 - AIPL1 gene 
 # Save plotcounts to a data frame object
 d1 <- plotCounts(dds, gene="ENSG00000129221", intgroup="sampletype", returnData=TRUE)
 # Plotting AIPL1 normalized counts, using the samplenames (rownames of d as labels)
-ggplot(d, aes(x = sampletype, y = count, color = sampletype)) + 
+ggplot(d1, aes(x = sampletype, y = count, color = sampletype)) + 
   geom_point(position=position_jitter(w = 0.1,h = 0)) +
-  geom_text_repel(aes(label = rownames(d))) + 
+  geom_text_repel(aes(label = rownames(d1))) + 
   theme_bw() +
   ggtitle("AIPL1 gene expression",) +
   theme(plot.title = element_text(hjust = 0.5, face='bold'))
@@ -151,22 +191,22 @@ ggplot(d2, aes(x = sampletype, y = mean, color = sampletype)) +
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, 
                 position=position_dodge(.9))
 
+################################################################################
+########## extract df with differentially expressed up-regulated genes #########
 
-
-
-
-
-## extract df with differentially expressed up-regulated genes:
 res_df_wt_up_TF <- res_df_wt %>% 
   mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange >= 0.58)
 res_df_opt_up_TF <- res_df_opt %>% 
   mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange >= 0.58)
 res_df_wt_opt_up_TF <- res_df_opt %>% 
   mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange >= 0.58)
+res_df_gfp_ctrl_up_TF <- res_df_gfp_ctrl %>% 
+  mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange >= 0.58)
 
 de_up_wt <- res_df_wt_up_TF[which(res_df_wt_up_TF$dif_expr == 'TRUE'), ]
 de_up_opt <- res_df_opt_up_TF[which(res_df_opt_up_TF$dif_expr == 'TRUE'), ]
 de_up_wt_opt <- res_df_wt_opt_up_TF[which(res_df_wt_opt_up_TF$dif_expr == 'TRUE'), ]
+de_up_gfp_ctrl <- res_df_gfp_ctrl_up_TF[which(res_df_gfp_ctrl_up_TF$dif_expr == 'TRUE'), ]
 
 df_genes <- df[, 1:4]
 row.names(df_genes) <- df_genes[,1]
@@ -176,14 +216,18 @@ df_genes = df_genes[,!(names(df_genes) %in% drop)]
 de_up_wt <- merge(x = de_up_wt, y = df_genes, by = 0, all.x = TRUE)
 de_up_opt <- merge(x = de_up_opt, y = df_genes, by = 0, all.x = TRUE)
 de_up_wt_opt <- merge(x = de_up_wt_opt, y = df_genes, by = 0, all.x = TRUE)
+de_up_gfp_ctrl <- merge(x = de_up_gfp_ctrl, y = df_genes, by = 0, all.x = TRUE)
 
 de_up_wt <- de_up_wt %>% arrange(desc(log2FoldChange))
 de_up_opt <- de_up_opt %>% arrange(desc(log2FoldChange))
 de_up_wt_opt <- de_up_opt %>% arrange(desc(log2FoldChange))
+de_up_gfp_ctrl <- de_up_gfp_ctrl %>% arrange(desc(log2FoldChange))
 
-write.table(de_up_wt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_wt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
-write.table(de_up_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_opt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
-write.table(de_up_wt_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_wt_vs_opt.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_up_wt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_wt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_up_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_opt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_up_wt_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_wt_vs_opt.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_up_gfp_ctrl[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_gfp_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
+
 
 
 ## extract df with differentially expressed down-regulated genes:
@@ -193,10 +237,13 @@ res_df_opt_down_TF <- res_df_opt %>%
   mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange <= -0.58)
 res_df_wt_opt_down_TF <- res_df_wt_opt %>% 
   mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange <= -0.58)
+res_df_gfp_ctrl_down_TF <- res_df_gfp_ctrl %>% 
+  mutate(dif_expr = padj < 1.580078e-06 & log2FoldChange <= -0.58)
 
 de_down_wt <- res_df_wt_down_TF[which(res_df_wt_down_TF$dif_expr == 'TRUE'), ]
 de_down_opt <- res_df_opt_down_TF[which(res_df_opt_down_TF$dif_expr == 'TRUE'), ]
 de_down_wt_opt <- res_df_wt_opt_down_TF[which(res_df_wt_opt_down_TF$dif_expr == 'TRUE'), ]
+de_down_gfp_ctrl <- res_df_gfp_ctrl_down_TF[which(res_df_gfp_ctrl_down_TF$dif_expr == 'TRUE'), ]
 
 df_genes <- df[, 1:4]
 row.names(df_genes) <- df_genes[,1]
@@ -206,18 +253,22 @@ df_genes = df_genes[,!(names(df_genes) %in% drop)]
 de_down_wt <- merge(x = de_down_wt, y = df_genes, by = 0, all.x = TRUE)
 de_down_opt <- merge(x = de_down_opt, y = df_genes, by = 0, all.x = TRUE)
 de_down_wt_opt <- merge(x = de_down_wt_opt, y = df_genes, by = 0, all.x = TRUE)
+de_down_gfp_ctrl <- merge(x = de_down_gfp_ctrl, y = df_genes, by = 0, all.x = TRUE)
 
 de_down_wt <- de_down_wt %>% arrange(log2FoldChange)
 de_down_opt <- de_down_opt %>% arrange(log2FoldChange)
 de_down_wt_opt <- de_down_wt_opt %>% arrange(log2FoldChange)
+de_down_gfp_ctrl <- de_down_gfp_ctrl %>% arrange(log2FoldChange)
 
-write.table(de_down_wt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_wt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
-write.table(de_down_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_opt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
-write.table(de_down_wt_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_wt_vs_opt.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_down_wt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_wt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_down_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_opt_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_down_wt_opt[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_wt_vs_opt.txt", sep="\t", quote=F, col.names=NA) 
+#write.table(de_down_gfp_ctrl[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_gfp_vs_ctrl.txt", sep="\t", quote=F, col.names=NA) 
 
 
 ################################## Volcano plot ################################
 ################################# for opt vs ctrl ##############################
+
 ## Obtain logical vector where TRUE values denote padj values < 0.05 and fold change > 1.5 in either direction
 res_df_opt_TF <- res_df_opt %>% 
   mutate(dif_expr = padj < 1.580078e-06 & abs(log2FoldChange) >= 0.58)
@@ -356,9 +407,54 @@ volcano_plot <- ggplot(data=res_df_opt_TF, aes(x=log2FoldChange, y=-log10(padj))
   theme(plot.title = element_text(face="bold", size = 17, hjust = 0.5))
 volcano_plot
 
+################################################################################
+###############  EXTRACTING GENES PRESENTED IN AILP1 MINUS GFP #################
+################################################################################
+
+de_down_opt_minus_gfp <- filter(de_down_opt, !Row.names %in% de_down_gfp_ctrl$Row.names)
+de_down_wt_minus_gfp <- filter(de_down_wt, !Row.names %in% de_down_gfp_ctrl$Row.names)
+de_up_opt_minus_gfp <- filter(de_up_opt, !Row.names %in% de_up_gfp_ctrl$Row.names)
+de_up_wt_minus_gfp <- filter(de_up_wt, !Row.names %in% de_up_gfp_ctrl$Row.names)
+
+write.table(de_down_opt_minus_gfp[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_opt_minus_gfp.txt", sep="\t", quote=F, col.names=NA) 
+write.table(de_down_wt_minus_gfp[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_down_wt_minus_gfp.txt", sep="\t", quote=F, col.names=NA) 
+write.table(de_up_opt_minus_gfp[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_opt_minus_gfp.txt", sep="\t", quote=F, col.names=NA) 
+write.table(de_up_wt_minus_gfp[c('Row.names','Symbol', 'Gene.name', 'padj', 'log2FoldChange')], file="results/de_up_wt_minus_gfp.txt", sep="\t", quote=F, col.names=NA) 
+
+
+################################### PLOTTING ###################################
+################################### from AM ####################################
+
+#load libraries or install where necessary 
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+sigs<- read.csv("AIPL_down2.csv", sep=",", header=FALSE)
+
+sigs
+#gene_to_test <-rownames(sigs[sigs$log2FoldChange > 1,])
+
+
+gene_to_test <- sigs [,1]
+
+gene_to_test
+
+GO_results<- enrichGO(gene = gene_to_test, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ont="BP")
+
+as.data.frame(GO_results)
+
+GO_results
+
+fit <- plot(barplot(GO_results, showCategory = 20))
+
+png("out.png", width = 250, height=1200)
 
 
 
+
+
+
+################################################################################
 
 ### !!! Difficult to opperate due to (and, mb, fuckuped numeration of my rows)
 ### Using ggplot2 to plot multiple genes (e.g. top 20):

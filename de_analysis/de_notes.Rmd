@@ -1,0 +1,20 @@
+---
+title: "de_notes"
+output: pdf_document
+date: "2023-03-16"
+---
+
+20230313
+Переписка с Лаврентием (рабочая почта "Вопросы по анализу данных РНК-секвенирования")
+По отсечке: https://hbctraining.github.io/DGE_workshop/lessons/05_DGE_DESeq2_analysis2.html
+
+Попробовать проанализировать данные с kallisto и Salmon, начать с tximport
+
+20230315
+Если установить cutoff padj = 0.001 и abs(log2FoldChange) = 1 число ДЭ генов снижается до пары сотен
+
+20230316
+По тесту: https://www.youtube.com/watch?v=TM9RnSnLhUU&list=PLcsjsqLLSfNCQYRXTiZdZHcmLn6-hZcR8&index=11&ab_channel=teach-in (00:59:10): в DEseq2 по умолчанию используется Wald test, но можно поменять на LRT (он построже, usage: 
+dds <- DESeq(dds, test="LRT", reduced=~1))
+
+Hypothesis testing (Wald test/LRT), потом Multiple test correction (Bonferroni, BH, ets)

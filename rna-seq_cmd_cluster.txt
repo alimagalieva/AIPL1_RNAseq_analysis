@@ -1,0 +1,89 @@
+scp C:/Users/alima/Downloads/AIPL1_RNAseq_analysis/* galieva@172.22.0.1:/home/galieva
+
+
+...
+
+
+scp galieva@172.22.0.1:/home/galieva/AIPL1_RNA_seq/qc/* C:/Users/alima/Documents/GitHub/AIPL1_RNAseq_analysis/qc
+
+...
+###### building indexes
+vim AIPL1_RNA_seq/genome/gencode.v29.annotation.gtf
+#added to gtf annotation file last string: 
+optAIPL1  \tab\  AddedGenes  \tab\ exon   \tab\  1   1158 \tab\  .  \tab\  +  \tab\ 0 \tab\ gene_id "optAIPL1"; transcript_id "optAIPL1 ";
+ls -lta AIPL1_RNA_seq/genome/
+mv AIPL1_RNA_seq/genome/AIPL_CO_OPT.fa AIPL1_RNA_seq/genome/optAIPL1.fa
+ls AIPL1_RNA_seq/genome/
+nproc
+#48
+cd AIPL1_RNA_seq/
+conda activate dea
+STAR --runThreadN 24 --runMode genomeGenerate --genomeDir starIndex --genomeFastaFiles genome/GRCh38.primary_assembly.genome.fa genome/optAIPL1.fa --sjdbGTFfile genome/gencode.v29.annotation.gtf
+
+... 
+
+## running mapping
+star --runThreadN 24 --genomeDir genomeDir --readFilesIn /path/to/read1 [/path/to/read2 ] --genomeDir specifies path to the genome directory where genome indices where generated --readFilesIn 
+
+
+
+
+
+
+
+
+
+### FastQC run on Windows GUI app  
+
+sudo apt install default-jre   
+chmod 755 fastqc
+                                                                                                             
+mnt/c/Users/alima/Downloads/FastQC/fastqc mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220816_HSGA.Sirius_RNA_2022.AIPL_3_1.fastq                                           
+conda install -c bioconda trimmomatic                                                                                                                                     
+locate trimmomatic                                                                                                                                           
+
+sudo apt install mlocate                                                                                                                                               
+locate trimmomatic                                                                                                                                           
+ls home/alimagalieva/anaconda3/share/trimmomatic/adapters/   
+ls home/alimagalieva/anaconda3/share/trimmomatic/adapters/ -lta  
+
+### need to install vsearch to figure out are our fastq-files phred+33 or phred+65:
+sudo apt install vsearch
+                                                                                                                                                   
+vsearch --fastq_chars mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220816_HSGA.Sirius_RNA_2022.AIPL_3_1.fastq                                                               
+vsearch --fastq_chars mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220816_HSGA.Sirius_RNA_2022.AIPL1_6_3.fastq                                                              
+vsearch --fastq_chars mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220816_HSGA.Sirius_RNA_2022.CC1.fastq 
+vsearch --fastq_chars mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220823_HSGA.Sirius_RNA_2022.CC2.fastq                                                                      
+vsearch --fastq_chars mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220823_HSGA.Sirius_RNA_2022.CC3.fastq                                                                     
+
+### trimming:
+trimmomatic SE -phred33 220823_HSGA.Sirius_RNA_2022.CC3.fastq 220823_HSGA.Sirius_RNA_2022.CC3_trim.fastq ILLUMINACLIP:TruSeq3-SE:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:25 MINLEN:36   
+locate 220823_HSGA.Sirius_RNA_2022.CC3.fastq    
+trimmomatic SE -phred33 /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220823_HSGA.Sirius_RNA_2022.CC3.fastq /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/220823_HSGA.Sirius_RNA_2022.CC3_trim.fastq  ILLUMINACLIP:TruSeq3-SE:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:25 MINLEN:36 
+         -//- 
+
+### found nice step-by-step tutorial for RNA-seq data analysis: https://learn.gencore.bio.nyu.edu/rna-seq-analysis/aligning-rna-seq-data/ 
+
+### creationg a bowtie2 indexes from reference genome: 
+conda install bowtie2 
+bowtie2-build /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/GRCh38_latest_rna.fna /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/GRCh38_latest_rna_idxs 
+
+
+### alignment:  
+sudo apt-get update 
+sudo apt-get upgrade
+#wget https://ccb.jhu.edu/software/tophat/downloads/tophat-2.1.1.Linux_x86_64.tar.gz ## couldn't do it with TopHat due to error
+#tar xvzf tophat-2.1.1.Linux_x86_64.tar.gz 
+
+#anaconda login ## can't login
+#conda install -c bioinfo tophat2
+
+
+### pseudoalignment (not sure if it is okay, but AM said to do):
+sudo apt-get -y install kallisto 
+### creationg a kallisto indexes from reference genome: 
+#kallisto index -i /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/GRCh38_latest_rna.idx /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/GRCh38_latest_rna.fna ### very long calculations
+### abundances quantification of the transcripts:
+#kallisto quant -i /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/GRCh38_latest_rna.idx -o /mnt/c/Users/alima/Downloads/Sirius_RNA_2022/kallisto_out -b 100 --single -l 180 -s 20 mnt/c/Users/alima/Downloads/Sirius_RNA_2022/trim/220816_HSGA.Sirius_RNA_2022.AIPL_3_1_trim3.fastq 
+
+...
