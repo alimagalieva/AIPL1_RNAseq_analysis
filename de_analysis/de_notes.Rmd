@@ -16,5 +16,8 @@ date: "2023-03-16"
 20230316
 По тесту: https://www.youtube.com/watch?v=TM9RnSnLhUU&list=PLcsjsqLLSfNCQYRXTiZdZHcmLn6-hZcR8&index=11&ab_channel=teach-in (00:59:10): в DEseq2 по умолчанию используется Wald test, но можно поменять на LRT (он построже, usage: 
 dds <- DESeq(dds, test="LRT", reduced=~1))
+```{r}
+
+```
 
 Hypothesis testing (Wald test/LRT), потом Multiple test correction (Bonferroni, BH, ets)

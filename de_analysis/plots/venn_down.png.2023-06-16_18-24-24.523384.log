@@ -1,0 +1,21 @@
+INFO [2023-06-16 18:24:24] $x
+INFO [2023-06-16 18:24:24] list(row.names(get(paste("sigs_", dir, "_wt_ctrl", sep = ""))), 
+INFO [2023-06-16 18:24:24]     row.names(get(paste("sigs_", dir, "_wt_gfp", sep = ""))), 
+INFO [2023-06-16 18:24:24]     row.names(get(paste("sigs_", dir, "_opt_ctrl", sep = ""))), 
+INFO [2023-06-16 18:24:24]     row.names(get(paste("sigs_", dir, "_opt_gfp", sep = ""))))
+INFO [2023-06-16 18:24:24] 
+INFO [2023-06-16 18:24:24] $category.names
+INFO [2023-06-16 18:24:24] c("wt_ctrl", "wt_gfp", "opt_ctrl", "opt_gfp")
+INFO [2023-06-16 18:24:24] 
+INFO [2023-06-16 18:24:24] $filename
+INFO [2023-06-16 18:24:24] paste("plots/venn_", dir, ".png", sep = "")
+INFO [2023-06-16 18:24:24] 
+INFO [2023-06-16 18:24:24] $output
+INFO [2023-06-16 18:24:24] [1] TRUE
+INFO [2023-06-16 18:24:24] 
+INFO [2023-06-16 18:24:24] $fill
+INFO [2023-06-16 18:24:24] c(1, 2, 3, 4)
+INFO [2023-06-16 18:24:24] 
+INFO [2023-06-16 18:24:24] $main
+INFO [2023-06-16 18:24:24] paste("Venn diagram, ", dir, "-regulated", sep = "")
+INFO [2023-06-16 18:24:24] 

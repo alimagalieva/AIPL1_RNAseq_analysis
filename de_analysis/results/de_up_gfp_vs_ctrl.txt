@@ -1,2 +1,0 @@
-	Row.names	Symbol	Gene.name	padj	log2FoldChange
-1	ENSG00000169710	FASN	fatty acid synthase	2.96052757434092e-08	0.751875258458971

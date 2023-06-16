@@ -15,5 +15,5 @@ library(plyr)
 library(dplyr)
 
 ## reading file:
-df <- read_tsv("data/fromVasia/aipl6_gfp.tsv") 
+df <- read_tsv("data/fromVasia/aipl6_gfp.tsv", show_col_types = FALSE) 
 sig_res <- filter(df, baseMean>5 & padj < 0.001 & log2FoldChange > 1)

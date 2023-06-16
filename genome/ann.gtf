@@ -1,0 +1,4 @@
+optAIPL1	AddedGenes	exon	1	1158	.	+	0	gene_id "optAIPL1g"; transcript_id "optAIPL1t";
+wtAIPL1	AddedGenes	exon	1	1158	.	+	0	gene_id "wtAIPL1g"; transcript_id "wtAIPL1t";
+pAAV-CMV-GFP	AddedGenes	exon	1321	2061	.	+	0	gene_id "GFPg"; transcript_id "GFPt";
+pAAV-GFP_CB	AddedGenes	exon	1321	2061	.	+	0	gene_id "GFP_CBg"; transcript_id "GFP_CBt";
