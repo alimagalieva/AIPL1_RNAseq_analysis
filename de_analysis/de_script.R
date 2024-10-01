@@ -24,9 +24,6 @@ library(VennDiagram)
 library(RColorBrewer)
 library(igraph)
 library(STRINGdb)
-#library(chromoMap)
-#library(DEGreport)
-#library(vsn)
 library(tximport)
 
 ## reading files:
@@ -52,8 +49,6 @@ colnT <- c(colnames(df[1:2]), colnames(df[15]))
 coln = c(colnT, colnS)
 df <- df[, coln]
 
-#row.names(data) <- data[, 'name'] ### can't do because some of them are non-unique
-
 df[df[2]=='AIPL1co', 'geneID'] <- 'AIPL1co'
 df[df[2]=='AIPL1wt', 'geneID'] <- 'AIPL1wt'
 df[df[2]=='GFP', 'geneID'] <- 'GFP'
@@ -69,48 +64,11 @@ all(colnames(data) == rownames(meta))
 
 hist(rowSums(data), breaks = 1000)
 
-################################# PRE-FILTERING ################################
-
-## creating DESeq DataSet
-#dds <- DESeqDataSetFromMatrix(countData = data, colData = meta, design = ~ sampletype)
-## Run DESeq2 differential expression analysis
-#dds <- DESeq(dds)
-
-##  **Optional step** - Output normalized counts to save as a file to access outside RStudio
-#normalized_counts <- counts(dds, normalized=TRUE) 
-#write.table(normalized_counts, file="data/normalized_counts.txt", sep="\t", quote=F, col.names=NA) 
-
-## Total number of raw counts per sample
-#colSums(counts(dds))
-
-## Total number of normalized counts per sample
-#colSums(counts(dds, normalized=T))
-
-## log2fold change calculation and MAplot: - what for?
-#plotMA(dds, main = "dds")
-#res <- results(dds)
-#plotMA(res, alpha = 0.05, main = "res", ylim=c(-7,7))
 
 ################################################################################
 ###################################### QC ######################################
 ################################################################################ 
 
-## Transform counts for data visualization
-#rld <- rlog(dds)
-#colnames(rld) <- paste(meta[rownames(meta)==colnames(rld),'sampletype'], meta[rownames(meta)==colnames(rld),'repl'], sep='-')
-#pca <- plotPCA(rld, intgroup="sampletype") + geom_point(size = 1) 
-#ggsave(pca, file='plots/PCA_all.png', width = 7, height = 4, dpi = 1200)
-## Extract the rlog matrix from the object
-#rld_mat <- assay(rld)
-#meta$repl <- c(1,2,3)
-#colnames(rld_mat) <- paste(meta[rownames(meta)==colnames(rld_mat),'sampletype'], meta[rownames(meta)==colnames(rld_mat),'repl'], sep='-')
-## Compute pairwise correlation values
-#rld_cor <- cor(rld_mat)
-## Plot heatmap
-#heatmap <- pheatmap(rld_cor, color = brewer.pal(9, "YlGnBu"), angle_col='45')
-#png('plots/heatmap_QC.png', heatmap, units='px', res = 1200, width = 15000, height = 8000)
-#print(heatmap)
-#dev.off()
 #remove CC1 from analysis, cause it doesn't cluster well and re-do dds object
 data = data[, !(names(data) %in% c('CC1'))] 
 meta <- data.frame(colnames(data))
@@ -134,29 +92,6 @@ dds <- DESeq(dds)
 
 sum(apply(counts(dds, normalized = TRUE), 1, function(row) all(row ==0)))
 
-################################################################################
-############################## ///////////////// ###############################
-############################## /// tentative /// ###############################
-############################## ///////////////// ###############################
-################################################################################
-
-'''
-res_unshrunken_wt_gfp <- results(dds, contrast = contrast_wt_gfp,  alpha = pval, lfcThreshold = lfc)
-res_shrunken_wt_gfp <- lfcShrink(dds, contrast = contrast_wt_gfp, res=res_unshrunken_wt_gfp, type='norm')
-res_df_wt_gfp <- data.frame(res_shrunken_wt_gfp)
-sig_res_wt_gfp <- filter(res_df_wt_gfp, padj < pval & abs(log2FoldChange) > lfc)
-
-hist(sig_res_wt_gfp$padj) ## looks norm
-
-res_df_wt_gfp_up_TF <- res_df_wt_gfp %>% 
-  mutate(dif_expr = padj < pval & log2FoldChange >= lfc)
-
-de_up_wt_gfp <- res_df_wt_gfp_up_TF[which(res_df_wt_gfp_up_TF$dif_expr == 'TRUE'), ]
-
-## Merge to see geneNames:
-de_up_wt_gfp <- merge(x = de_up_wt_gfp, y = df_genes, by = 0, all.x = TRUE)
-de_up_wt_gfp <- de_up_wt_gfp %>% arrange(desc(log2FoldChange))
-'''
 
 ################################################################################
 ################################### Shrinkage ##################################
@@ -353,10 +288,6 @@ d[,'AIPL1_variant'] <- c(factor(rep(c('AIPL1co', 'AIPL1wt'), each=11)))
 ggplot(data=d, aes(x = sampletype, y = count, fill=AIPL1_variant)) 
   
 
-
-ещё попробовать постоить cnetplot() и другие визуализации clusterProfiler
-Удалить рРНК из ридов
-
 ################################################################################
 ############################# compare with genes list ##########################
 ################################################################################
@@ -489,6 +420,7 @@ if (nrow(GO_results) != 0) {
   fig <- barplot(GO_results, showCategory = 20) + ggtitle('GO of AIPL1_BioGrid') + theme(plot.title = element_text(face = 'bold', hjust = 0.5), axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 12), axis.text.y = element_text(size = 10))
   ggsave(fig, file='plots/GO_AIPL1_BioGrid.png', width = 14, height = 7, dpi = 1200)
 }
+
 
 ################################################################################
 ################################### N of DEGs ##################################
@@ -655,13 +587,6 @@ fig3_bar <- ggplot(fig3, aes(x=reorder(genes,RQ), y=RQ)) +
 ggsave(fig3_bar, file='plots/fig3_bar.png', width = 10, height = 7, dpi = 1200)
 
 ################################################################################
-################################### chromoMap ##################################
-################################################################################
-
-chromoMap('../genome/GRCh38.primary_assembly.genome.fa', sigs_wt_ctrl, "../genome/gencode.v43.primary_assembly.annotation.gtf")
-
-
-################################################################################
 ########################### Lists of genes for article #########################
 ################################################################################
 
@@ -676,44 +601,6 @@ genes_OMIM <- c('PATZ1', 'POT1', 'TXNL4B', 'WDR24', 'HSPA8', 'HSP90AA1', 'UBA6',
                 'TP53', 'UBD', 'LBX1', 'FKBP15', 'HSPA4', 'BLM', 'ACD', 'PDE5A')
 
 intersect <- intersect(genes_OMIM, sigs_wt_gfp$symbol)
-
-################################################################################
-#################################### STRING ####################################
-################################################################################ 
-
-
-
-
-
-string_db <- STRINGdb$new(version="11.5", species=9606,
-                          score_threshold=200, network_type="full", input_directory="")
-mapped <- string_db$map(sigs, "symbol", removeUnmappedRows = TRUE)
-mapped <- string_db$add_diff_exp_color(mapped, logFcColStr="log2FoldChange")
-payload_id <- string_db$post_payload(mapped$STRING_id, colors=mapped$color)
-hits <- mapped$STRING_id[]
-string_db$plot_network(hits, payload_id=payload_id)
-
-
-
-backgroundV <- mapped$STRING_id[] 
-string_db$set_background(backgroundV)
-
-enrichment <- string_db$get_enrichment(hits)
-head(enrichment, n=20)
-
-################################################################################
-########################### trying to remove 'virus' ###########################
-################################################################################ 
-pval <- 0.005 
-lfc <- 1.58
-samp <- 'opt_ctrl'
-for (dir in c('up', 'down')) {
-  genes_to_test <- get(paste('sigs_', dir, '_', samp, sep=''))[,1]
-  GO_results <- enrichGO(gene = genes_to_test, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ont="BP")
-  GO_results <- as.data.frame(GO_results)
-  
-}
-
 
 
 ################################################################################
@@ -792,251 +679,3 @@ ggplot(d2, aes(x = sampletype, y = mean, color = sampletype)) +
   ylab("normalized Counts") + xlab("sample") + ggtitle("AIPL1 gene expression")+ 
   geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2, 
                 position=position_dodge(.9))
-
-################################################################################
-################################################################################
-##################################### RSEM #####################################
-################################################################################
-################################################################################
-
-rsem_files <- c('../rsem_no_symbols/AIPL_3_1.isoforms.results', '../rsem_no_symbols/AIPL_3_2.isoforms.results', '../rsem_no_symbols/AIPL_3_3.isoforms.results', 
-                '../rsem_no_symbols/AIPL1_6_1.isoforms.results', '../rsem_no_symbols/AIPL1_6_2.isoforms.results', '../rsem_no_symbols/AIPL1_6_3.isoforms.results', 
-                '../rsem_no_symbols/GFP_1.isoforms.results', '../rsem_no_symbols/GFP_2.isoforms.results', '../rsem_no_symbols/GFP_3.isoforms.results', 
-                '../rsem_no_symbols/CC1.isoforms.results', '../rsem_no_symbols/CC2.isoforms.results', '../rsem_no_symbols/CC3.isoforms.results')
-#for (f in rsem_files){
-  file <- read.table(f, header = T)
-  file$transcript_id <- gsub("_[^_]+$", "", file$transcript_id)
-  #write.table(file, file=f, sep="\t", quote=F, col.names=NA)
-}
-iso <- read.table('../rsem/AIPL_3_1.isoforms', header = T)
-iso$transcript_symbol <- gsub(".*_", "", iso$transcript_id)
-row.names(iso) <- gsub("_[^_]+$", "", iso$transcript_id)
-iso$gene_symbol <- gsub(".*_", "", iso$gene_id)
-iso$gene_id <- gsub("_[^_]+$", "", iso$gene_id)
-iso <- iso[ ,c('transcript_symbol', 'gene_id', 'gene_symbol')]
-
-rsem_data <- tximport(rsem_files, type = "rsem", txIn = TRUE, txOut = T,
-                      countsFromAbundance = "scaledTPM", readLength = 60)
-#rsem_data <- gsub("_[^_]+$", "", file$transcript_id)
-
-meta <- data.frame(row.names = factor(c('AIPL_3_1.isoforms.results', 'AIPL_3_2.isoforms.results', 'AIPL_3_3.isoforms.results', 
-                                                'AIPL1_6_1.isoforms.results', 'AIPL1_6_2.isoforms.results', 'AIPL1_6_3.isoforms.results', 
-                                                'GFP_1.isoforms.results', 'GFP_2.isoforms.results', 'GFP_3.isoforms.results', 
-                                                'CC1.isoforms.results', 'CC2.isoforms.results', 'CC3.isoforms.results')), 
-                          sampletype = factor(c('AAV9_AIPL1wt', 'AAV9_AIPL1wt', 'AAV9_AIPL1wt', 
-                                                'AAV9_AIPL1co', 'AAV9_AIPL1co', 'AAV9_AIPL1co', 
-                                                'non_transd_ctrl', 'non_transd_ctrl', 'non_transd_ctrl', 
-                                                'AAV9_GFP', 'AAV9_GFP', 'AAV9_GFP')),
-                          repl = rep(c(1, 2, 3), 4))
-dds <- DESeqDataSetFromTximport(rsem_data, colData=meta, design=~sampletype)
-dds <- DESeq(dds)
-
-normCounts <- as.data.frame(counts(dds, normalized=T))
-normCounts$ens <- gsub("\\..*","", rownames(normCounts))
-normCounts$symbol <- mapIds(org.Hs.eg.db, keys = normCounts$ens, keytype = 'ENSEMBLTRANS', column = 'SYMBOL')
-normCounts = subset(normCounts, select = -c(ens))
-normCounts <- cbind(normCounts, iso$transcript_symbol)
-#rownames(normCounts) <- normCounts[,'iso$transcript_symbol']
-normCounts[rownames(normCounts[is.na(normCounts$symbol), ]), 'symbol'] <- rownames(normCounts[is.na(normCounts$symbol),])
-
-#write.table(normCounts, file=paste('results/normCountsRSEM.txt'), sep="\t", quote=F, col.names=NA)
-
-h1 <- strsplit(normCounts[grep("^H1", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-h2a <- strsplit(normCounts[grep("^H2A", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-h2b <- strsplit(normCounts[grep("^H2B", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-h3 <- strsplit(normCounts[grep("^H3", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-h4 <- strsplit(normCounts[grep("^H4", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-histones <- c(h1, h2a, h2b, h3, h4)
-
-ifis <- strsplit(normCounts[grep("^IFI", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-irfs <- strsplit(normCounts[grep("^IRF", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-ifs <- c(ifis, irfs)
-
-ASs <- strsplit(normCounts[grep("-AS", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-
-linc <- strsplit(normCounts[grep("^LINC", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-
-hsp <- strsplit(normCounts[grep("^HSP", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-dnaj <- strsplit(normCounts[grep("^DNAJ", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-fkbp <- strsplit(normCounts[grep("^FKBP", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-hsp_dnaj_fkbp <- c('AIPL1', hsp, dnaj, fkbp)
-
-IL1R <- strsplit(normCounts[grep("^IL1R", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-IL1 <- strsplit(normCounts[grep("^IL1", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-ILs <- strsplit(normCounts[grep("^IL", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-IL_sel <- c('IL1R1', 'IL1RL2', 'IL1RL1', 'IL1A', 'IL1B', 'IL1RN', 'IL36RN', 'IL36B', 'IL1F10', 'IL1RAPL1', 'IL6')
-
-POT1 <- c('ACD', 'ACOT7', 'ACTB', 'ACTN4', 'ACY1', 'AFAP1L2', 'AHCY', 'AHNAK', 'AIPL1', 'ALDH1A1', 'ALDH3A1', 'AMPD2', 'ANKMY2', 'ANXA2', 'ANXA4', 'APPL2', 'ARHGDIA', 'ARID3B', 'ARRB1', 'BAG3', 'BCAS2', 'BIN2', 'C15orf57', 'C2orf74', 'CALD1', 'CAMK1D', 'CCDC9', 'CCM2', 'CFL1', 'CFL2', 'CKB', 'CLIC3', 'CNST', 'CORO1A', 'COX6A2', 'CPNE3', 'CPPED1', 'CRK', 'CRYGS', 'CSNK2B', 'CYP4F11', 'DBN1', 'DBNL', 'DCX', 'DDX19B', 'DNPH1', 'DOK2', 'DPP3', 'DPYSL3', 'ECI1', 'EEF1D', 'EIF3G', 'EIF4B', 'ENO2', 'ENSA', 'EPB41L1', 'EVL', 'FAM131B', 'FBP1', 'FES', 'GAMT', 'GAPDH', 'GAS2L1', 'GFPT2', 'GNMT', 'GPA33', 'GPR52', 'GRN', 'HAAO', 'HLCS', 'HMOX1', 'HNMT', 'HOXA3', 'HSP90AB1', 'HSPA1A', 'IFRD2', 'IL1RN', 'ISYNA1', 'IVL', 'KHDRBS1', 'KIAA1191', 'KRT18', 'LAMC3', 'LASP1', 'LDHA', 'LDHB', 'MADD', 'MAGEA4', 'MAP4', 'MAP4K2', 'MAP7', 'MDM2', 'MICA', 'MT1X', 'MVK', 'MVP', 'MYO5C', 'NAP1L1', 'NCDN', 'NOL3', 'NUDC', 'NUDCD2', 'NXNL1', 'PACSIN1', 'PACSIN2', 'PAGE2', 'PAGE5', 'PAK4', 'PALM', 'PCP4', 'PDE1B', 'PDLIM2', 'PEX5', 'PFKP', 'PGLS', 'PGM1', 'PGM2', 'PHYHD1', 'PHYKPL', 'PIPOX', 'PRMT7', 'PROSER2', 'RBKS', 'RECQL4', 'RGS14', 'RIF1', 'RPAP1', 'RPSA', 'RTN4', 'SARS', 'SBDS', 'SERTAD1', 'SH3BP1', 'SNCG', 'STIP1', 'STUB1', 'SULT1B1', 'SULT1C2', 'SULT4A1', 'SYAP1', 'TAGLN', 'TBCD', 'TERF1', 'TERF2', 'TINF2', 'TMSB10', 'TMSB4Y', 'TNKS', 'TOMM34', 'TPI1', 'TPP1', 'TRIM16', 'TRIP10', 'TUBB2A', 'TUBB4B', 'TWF2', 'WIBG', 'WIPI2', 'XAGE2', 'YWHAE', 'YWHAG', 'ZBED2', 'ZBTB49', 'ZFP36L1', 'ZNF32', 'ZNF790')
-TINF2 <- c('ACD', 'ACOT7', 'ACTB', 'ADA', 'AFAP1L2', 'AIPL1', 'AK1', 'ANKMY2', 'ANXA4', 'ANXA5', 'APOBEC3F', 'APPL2', 'ARHGDIA', 'ARID3B', 'BAG3', 'BIN2', 'CALD1', 'CCDC43', 'CCDC9', 'CKB', 'CLK3', 'CPNE3', 'CRYGS', 'CTTN', 'DBN1', 'DCX', 'DHFRL1', 'DPP3', 'EEF1D', 'EIF4B', 'ENO2', 'FAM131B', 'FERMT3', 'FKBP6', 'GAPDH', 'GNMT', 'HNMT', 'HOXA3', 'HSP90AB1', 'IPO5', 'KCTD17', 'LASP1', 'LDHA', 'LGALSL', 'LTA4H', 'MAP2K3', 'NCDN', 'NOL3', 'NUDC', 'NUDCD2', 'OR2H1', 'PAGE2', 'PAK1IP1', 'PEX5', 'PFKP', 'PGM1', 'PGM2', 'PHPT1', 'PKM', 'POT1', 'PPP1R2', 'PPP6R3', 'PRKCB', 'REM2', 'RGS14', 'RPSA', 'SARS', 'SCRN2', 'SIAH2', 'STUB1', 'SULT1C2', 'TAGLN', 'TBL1X', 'TERF1', 'TERF2', 'TOMM34', 'TPP1', 'TRIM15', 'TRIM16', 'TRIP10', 'TUBB', 'TUBB4B', 'TXNDC17', 'UCHL1', 'VIPR1', 'YWHAG', 'ZFP36L1', 'ZNF790')
-ACD <- c('ACTB', 'ADPRH', 'AFAP1L2', 'AIPL1', 'ANKMY2', 'APOBEC3F', 'BAG3', 'CKB', 'CTTN', 'DBN1', 'DBNL', 'DCX', 'DPYSL3', 'EIF3G', 'EIF4B', 'ENO2', 'ENSA', 'FAM131B', 'FKBP6', 'GAPDH', 'HSP90AB1', 'IPO5', 'IVL', 'LASP1', 'LDHA', 'LGALSL', 'LLGL1', 'LRRC25', 'NCDN', 'NUDC', 'NUDCD2', 'PAGE2', 'PDLIM2', 'PEX5', 'PFKP', 'PGM2', 'POT1', 'RBKS', 'RECQL4', 'RGS3', 'RPSA', 'SBDS', 'STIP1', 'STUB1', 'SULT1C2', 'TAGLN', 'TBC1D10A', 'TBCD', 'TINF2', 'TOMM34', 'TRIM15', 'TRIM16', 'TUBB2A', 'TUBB4B', 'USP7', 'XRCC6', 'YWHAE', 'ZFP36L1', 'ZNF790')
-RAP1A <- c('HNRNPD', 'PPP4R2', 'SYVN1', 'UQCRC2', 'CLPP', 'CHMP4C', 'MARCKS', 'GANAB', 'TRIM67', 'ECHS1', 'KIFAP3', 'TSC2', 'RADIL', 'RAPGEF1', 'SMARCA2', 'RABIF', 'DGKI', 'FAS', 'PCDHA8', 'CDC34', 'CALCOCO2', 'RAB7A', 'RGL4', 'HNRNPL', 'CCDC85A', 'HSPA5', 'RAPGEF5', 'RAB8B', 'PARL', 'RGS14', 'BRAF', 'ARHGDIA', 'RUNDC3A', 'PPP2R1A', 'RASGRP4', 'TMEM31', 'HYPM', 'TCEB3', 'SOD1', 'LIMA1', 'CDC42', 'NTRK1', 'RAB5B', 'RAB5C', 'KRIT1', 'PRIM1', 'DUSP22', 'KLRC4', 'IFT22', 'PFN1', 'OR2T10', 'GPR113', 'CPLX2', 'TRIM25', 'RAPGEF4', 'ILF3', 'CENPM', 'MLLT4', 'RAP1GAP', 'MEF2BNB', 'EXOC6', 'DUSP9', 'DPF2', 'ESR1', 'FADD', 'SAAL1', 'CACUL1', 'RAB8A', 'TBRG4', 'KIF14', 'IQGAP1', 'DLST', 'CAV2', 'GNB1', 'PDE6D', 'POLE3', 'INSC', 'KBTBD4', 'RAF1', 'PON2', 'PARK2', 'KLK10', 'RBM39', 'RGL1', 'HNRNPM', 'PCTP', 'AKAP1', 'FEN1', 'TNFRSF10C', 'TACR3', 'OSGEP', 'HDAC1', 'RAPGEF6', 'RAP1GDS1', 'LGALS9', 'BMX', 'RAPGEF2', 'BIN1', 'DNAJC8', 'FGFR1', 'ARHGEF1', 'MMGT1', 'ELAVL1', 'HSPA4', 'XRCC6', 'C10ORF91', 'GNG12', 'RHOB', 'RYBP', 'HNRNPDL', 'CUL4A', 'LYN', 'DUSP19', 'RHEB', 'CCDC53', 'IMMP2L', 'CD53', 'ESR2', 'MRPL34', 'RAB1A', 'RALGDS', 'RAB35', 'MGST3', 'CHST12', 'RAB5A', 'GABARAPL2', 'OR6N1', 'TAX1BP1', 'MTOR', 'KIAA1429', 'GPC3', 'FAF1', 'UNK', 'AR', 'MAGEA3', 'PMAIP1', 'STX7', 'BSG', 'RAPGEF3', 'RPL35A', 'MTNR1A', 'SIRT1', 'LAMP2', 'KRAS', 'CDK11B', 'PIGO')
-POT1_TINF2_ACD_RAP1A <- unique(c(POT1, TINF2, ACD, RAP1A))
-
-P53 <- c('MDM2', 'MDM4', 'RFWD2', 'TP53', 'TP63', 'TP73')
-P53_panther <- c('AKT1', 'AKT2', 'AKT3', 'ATM', 'ATR', 'CCNA1', 'CCNA2', 'CCNE1', 'CCNG1', 'CDK2', 'CDKN1A', 'CTNNB1', 'HRAS', 'KRAS', 'MAPK11', 'MAPK12', 'MAPK13', 'MAPK14', 'MYC', 'NRAS', 'PDPK1', 'PIK3C2A', 'PIK3C2B', 'PIK3C2G', 'PIK3C3', 'PIK3CA', 'PIK3CB', 'PIK3CD', 'PIK3CG', 'PIK3R1', 'PIK3R2', 'PIK3R3', 'PIK3R5', 'PPP2CA', 'PPP2CB', 'PTEN', 'RB1', 'RBL1', 'SIAH1', 'TP53', 'TP63', 'TP73')
-YWHA <- strsplit(normCounts[grep("^YWHA", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-YWHA <- c("YWHAE","YWHAH","YWHAQ","YWHAZ","YWHAB","YWHAG")
-TP53 <- c(P53, P53_panther, YWHA)
-
-H2AZ <- strsplit(normCounts[grep("^H2AZ", normCounts$'iso$transcript_symbol'),]$'iso$transcript_symbol', split=' ')
-
-AIPL1_pittEdu <- c('ACD', 'HSP90AA1', 'HSPA8', 'NUB1', 'POT1', 'TINF2')
-AIPL1_BioGrid <- c('optAIPL1g', 'NUB1', 'PDE5A', 'BLM', 'EDRF1', 'HSPA8', 'A2ML1', 'ACD', 'ACPP', 'ALOX12B', 'ANXA8', 'ARHGAP1	', 'C3', 'C4A', 'CALML5', 'CAPNS2', 'CASP14', 'CBR1', 'CPA4', 'CXORF57	', 'DTX2', 'EVPL', 'FGB', 'FGFR1OP', 'FGG', 'FKBP15', 'FLG', 'HAL', 'HERC2', 'HIST2H3PS2', 'HMGCS1', 'HMOX1', 'HPGD', 'HSP90AA1', 'HSP90AA1', 'HSP90AB1', 'HSPA4', 'HSPA8', 'IGH', 'IGHG1', 'IGHG2', 'IGHG3', 'IGHM', 'IGLC6', 'IL37', 'IVL', 'KLK7', 'KPNA5', 'KPRP', 'LBX1', 'LCN2', 'LCP1', 'LOR', 'MIOS', 'MTMR3', 'NADSYN1', 'NCCRP1', 'NUB1', 'ORM1', 'PATZ1', 'PKP1', 'PLSCR3', 'POF1B', 'POT1', 'PPL', 'RAB14', 'RAB5A', 'RAI14', 'RNASE7', 'S100A7A', 'SCPEP1', 'SDR9C7', 'SEC16A', 'SEPT2', 'SERPINA3', 'SERPINB4', 'SMAP1', 'SMTNL2', 'SPRR1A', 'SPRR1B', 'STAT3', 'SUCLG2', 'SULT2B1', 'SUPT5H', 'TF', 'TGM3', 'TINF2', 'TP53', 'TREX2', 'TXNL4B', 'TYMP', 'UBA6', 'UBD', 'VIM', 'WASF1', 'WDR24')
-
-NFKB1 <- c('NFKB1', 'PIK3CA', 'CTNNB1', 'EP300', 'HDAC2', 'MYC', 'NFKBIZ', 'KAT5', 'PML', 'NCOA1', 'PTGS2', 'RXRA', 'NR4A1', 'AURKA', 'CHEK1', 'CUL4A', 'TP63', 'CUL3', 'CUL1', 'HDAC1', 'ETS1', 'CEBPB', 'NOTCH1', 'RELA', 'IL10RA', 'STAT6', 'STAT3', 'JUN', 'GSK3B', 'AURKB', 'JAK1', 'CUL4B', 'PARP1')
-
-all <- rownames(normCounts)
-
-heatList <- function(sigs, NameOfList) {
-  sigs <- normCounts[normCounts$'iso$transcript_symbol' %in% NameOfList, ]
-  #keep <- rowSums(sigs >= 5) >= 4
-  #sigs <- sigs[keep,]
-  
-  #sigs <- sigs[order(sigs$map),]
-  matr.z <- t(apply(sigs[,1:12], 1, scale))
-  matr.z <- na.omit(matr.z)
-  colnames(matr.z) <- paste(meta[rownames(meta)==colnames(sigs),'sampletype'], meta[rownames(meta)==colnames(sigs),'repl'], sep='-')
-  #colnames(matr.z) <- colnames(sigs[,1:11])
-  fig <- Heatmap(matr.z, cluster_rows = T, cluster_columns = T, column_labels = colnames(matr.z), 
-                 name = 'Z.score', column_names_rot = 45, 
-                 row_labels = paste(sigs[rownames(matr.z), 'iso$transcript_symbol'], sep=' - '),
-                 row_names_gp = gpar(fontsize = 3), 
-                 column_title = paste('Heatmap of ', deparse(substitute(NameOfList)), ' splice isoforms', sep=''))
-  png(paste('plots/heat_si_', deparse(substitute(NameOfList)), '.png', sep=''), res = 1200, width = 7000, height = 10000)
-  print(fig)
-  dev.off()
-}
-heatList(sigs=normCounts, NameOfList=AIPL1_BioGrid)
-
-
-
-shrink <- function(samp, pval, lfc) {
-  unshrunken <- results(dds, contrast = get(paste('contr_', samp, sep='')))
-  shrunken <- lfcShrink(dds, contrast = get(paste('contr_', samp, sep='')), 
-                        res=unshrunken, type='normal')
-  res_df <<- data.frame(shrunken)
-  #print(samp, res_df)
-}
-
-filtr <- function(samp, pval, lfc){
-  res_df <- cbind(res_df, rownames(iso), iso$transcript_symbol)
-  rownames(res_df) <- paste(res_df[,7], res_df[,8], sep='-')
-  rownames(res_df) <<- paste(res_df[,7], res_df[,8], sep='-')
-  sigs <- filter(res_df, padj < pval & abs(log2FoldChange) > lfc)
-  sigs <<- filter(res_df, padj < pval & abs(log2FoldChange) > lfc)
-  res_df <<- res_df
-}
-
-volcano <- function(samp, pval, lfc) {
-  sigs_top5 <- subset(sigs %>% arrange(log2FoldChange) %>% head(n=5))
-  sigs_low5 <- subset(sigs %>% arrange(desc(log2FoldChange)) %>% head(n=5))
-  sigs_10 <- rbind(sigs_top5, sigs_low5)
-  res_df <- merge(res_df, sigs_10, by = 'row.names', all.x = T)
-  row.names(res_df) <- res_df$Row.names
-  res_df <- res_df[c('baseMean.x', 'log2FoldChange.x', 'lfcSE.x', 'stat.x', 'pvalue.x', 'padj.x', 'iso$transcript_symbol.y')]
-  colnames(res_df) <- c('baseMean', 'log2FoldChange', 'lfcSE', 'stat', 'pvalue', 'padj', 'name10')
-  
-  res_df$super <- res_df$log2FoldChange >  lfc  & res_df$padj < pval
-  res_df$sub   <- res_df$log2FoldChange < -lfc  & res_df$padj < pval
-  res_df$threshold <- as.factor(abs(res_df$log2FoldChange) > lfc & res_df$padj < pval)
-  
-  volc <- ggplot(data=res_df, aes(x=log2FoldChange, y=-log10(padj))) +
-    geom_point(data=res_df, size=1, colour="gray") +
-    geom_point(data=res_df[res_df$super==TRUE, ], size=1.5, colour="#CC0000") +
-    geom_point(data=res_df[res_df$sub  ==TRUE, ], size=1.5, colour="#000099") +
-    geom_point(data=res_df[!is.na(res_df$name10), ], size=2, shape=1) +
-    geom_text_repel(aes(label = name10)) +
-    xlab("log2 fold change") +
-    ylab("-log10 p-value adjusted") +
-    ggtitle(paste('Differential expression of ', samp, '\nl2fc = ', lfc, ', padj = ', pval, sep='')) +
-    scale_x_continuous() +
-    scale_y_continuous() +
-    theme_bw() +
-    theme(axis.title.y = element_text(size=16),
-          axis.title.x = element_text(size=16, colour="black"),
-          axis.text = element_text(size=12),
-          legend.title =element_blank() ,
-          legend.text = element_text(size = 12)) +
-    theme(plot.title = element_text(face="bold", size = 17, hjust = 0.5)) +
-    geom_hline(yintercept = -log10(pval), linetype="dotted") + 
-    geom_vline(xintercept = c(lfc, -lfc), linetype="dotted")
-  
-  ggsave(volc, file=paste('plots/volcano_si_', samp, '_lfc=', lfc,'_padj=', pval, '.png', sep=""), 
-         width = 7, height = 7, dpi = 600)
-}
-
-go_bar <- function(samp, pval, lfc) {
-  for (dir in c('up', 'down')) {
-    genes_to_test <- get(paste('sigs_', dir, '_', samp, sep=''))[,1]
-    GO_results <- enrichGO(gene = genes_to_test, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ont="BP")
-    as.data.frame(GO_results)
-    if (nrow(GO_results) != 0) {
-      fig <- barplot(GO_results, showCategory = 20) + 
-        ggtitle(paste('GO of ', samp, ', ', dir, '-regulated', ', l2fc = ', lfc, ', padj = ', pval, sep='')) +
-        theme(plot.title = element_text(face = 'bold', hjust = 0.5), 
-              axis.title.x = element_text(size = 16), 
-              axis.text.x = element_text(size = 12), 
-              axis.text.y = element_text(size = 10))
-      ggsave(fig, 
-             file=paste('plots/GO_', samp, '_', dir, '_lfc=', lfc, '_padj=', pval, '.png', sep=''), 
-             width = 14, height = 7, dpi = 600)
-    }
-  }
-}
-
-for (samp in c('wt_ctrl','opt_ctrl', 'wt_gfp', 'opt_gfp', 'opt_wt', 'gfp_ctrl')) {
-  
-  shrink(samp, pval, lfc)
-  
-  filtr(samp, pval, lfc)
-  
-  #assign(paste('res_', samp, sep=''), res_df[,c(-7)])
-  
-  assign(paste('sigs_', samp, sep=''), sigs[,c('iso$transcript_symbol', 'baseMean', 'log2FoldChange', 'lfcSE', 'stat', 'pvalue', 'padj')])
-  #write.table(get(paste('sigs_', samp, sep=''))[c('symbol', 'padj', 'log2FoldChange')], 
-  #            file=paste('results/sigs_', samp, '_l2fc=', lfc, '_padj=', pval, '.txt', sep=''), sep="\t", quote=F, col.names=NA)
-  assign(paste('sigs_down_', samp, sep=''), filter(get(paste('sigs_', samp, sep='')), padj < pval & log2FoldChange < lfc))
-  #write.table(get(paste('sigs_down_', samp, sep=''))[c('symbol', 'padj', 'log2FoldChange')], 
-  #            file=paste('results/sigs_', samp, '_down_l2fc=', lfc, '_padj=', pval, '.txt', sep=''), sep="\t", quote=F, col.names=NA)
-  assign(paste('sigs_up_', samp, sep=''), filter(get(paste('sigs_', samp, sep='')), padj < pval & log2FoldChange > lfc))
-  #write.table(get(paste('sigs_up_', samp, sep=''))[c('symbol', 'padj', 'log2FoldChange')], 
-  #            file=paste('results/sigs_', samp, '_up_l2fc=', lfc, '_padj=', pval, '.txt', sep=''), sep="\t", quote=F, col.names=NA)
-  #print(nrow(get(paste('sigs_', samp, sep=''))) == nrow(get(paste('sigs_up_', samp, sep=''))) + nrow(get(paste('sigs_down_', samp, sep=''))))
-  
-  volcano(samp, pval, lfc)
-  
-  #heat(samp, pval, lfc)
-  
-  #go_bar(samp, pval, lfc)
-} ### never delete middle strings!
-
-################################################################################
-################################################################################
-################################################################################
-
-### !!! Difficult to opperate due to (and, mb, fuckuped numeration of my rows)
-### Using ggplot2 to plot multiple genes (e.g. top 20):
-## Order results by padj values
-top20_sig_genes <- sig_res_opt %>% 
-  arrange(padj) %>% 	#Arrange rows by padj values
-  head(n=20) 		#Extract the first 20 genes
-#top20_sig_genes$gene <- rownames(top20_sig_genes)
-## Then, we can extract the normalized count values for these top 20 genes:
-## normalized counts for top 20 significant genes
-top20_sig_norm <- normalized_counts %>% filter(gene %in% top20_sig_genes)
-# Gathering the columns to have normalized counts to a single column
-gathered_top20_sigOE <- top20_sigOE_norm %>%
-  gather(colnames(top20_sigOE_norm)[2:9], key = "samplename", value = "normalized_counts")
-## check the column header in the "gathered" data frame
-View(gathered_top20_sigOE)
-gathered_top20_sigOE <- inner_join(mov10_meta, gathered_top20_sigOE)
-## plot using ggplot2
-ggplot(gathered_top20_sigOE) +
-  geom_point(aes(x = gene, y = normalized_counts, color = sampletype)) +
-  scale_y_log10() +
-  xlab("Genes") +
-  ylab("log10 Normalized Counts") +
-  ggtitle("Top 20 Significant DE Genes") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  theme(plot.title = element_text(hjust = 0.5))
